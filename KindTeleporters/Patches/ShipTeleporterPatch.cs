@@ -89,51 +89,51 @@ namespace KindTeleporters.Patches
         }
 
         private static void DropAllButHeldItem(PlayerControllerB player) {
-            bool itemsFall = true;
-            bool disconnecting = false;
-
             for (int i = 0; i < player.ItemSlots.Length; i++) {
-                if (i == player.currentItemSlot) {
+                GrabbableObject grabbableObject = player.ItemSlots[i];
+                if (i == player.currentItemSlot || grabbableObject is null) {
                     continue;
                 }
 
-                GrabbableObject grabbableObject = player.ItemSlots[i];
-                if (!(grabbableObject != null)) {
-                    continue;
+                grabbableObject.parentObject = null;
+                grabbableObject.heldByPlayerOnServer = false;
+
+                if (player.isInElevator) {
+                    grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, worldPositionStays: true);
+                } else {
+                    grabbableObject.transform.SetParent(player.playersManager.propsContainer, worldPositionStays: true);
                 }
-                if (itemsFall) {
-                    grabbableObject.parentObject = null;
-                    grabbableObject.heldByPlayerOnServer = false;
-                    if (player.isInElevator) {
-                        grabbableObject.transform.SetParent(player.playersManager.elevatorTransform, worldPositionStays: true);
-                    } else {
-                        grabbableObject.transform.SetParent(player.playersManager.propsContainer, worldPositionStays: true);
-                    }
-                    player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
-                    grabbableObject.EnablePhysics(enable: true);
-                    grabbableObject.EnableItemMeshes(enable: true);
-                    grabbableObject.transform.localScale = grabbableObject.originalScale;
-                    grabbableObject.isHeld = false;
-                    grabbableObject.isPocketed = false;
-                    grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
-                    grabbableObject.FallToGround(randomizePosition: true);
-                    grabbableObject.fallTime = Random.Range(-0.3f, 0.05f);
-                    if (player.IsOwner) {
-                        grabbableObject.DiscardItemOnClient();
-                    } else if (!grabbableObject.itemProperties.syncDiscardFunction) {
-                        grabbableObject.playerHeldBy = null;
-                    }
+
+                player.SetItemInElevator(player.isInHangarShipRoom, player.isInElevator, grabbableObject);
+                grabbableObject.EnablePhysics(enable: true);
+                grabbableObject.EnableItemMeshes(enable: true);
+                grabbableObject.transform.localScale = grabbableObject.originalScale;
+                grabbableObject.isHeld = false;
+                grabbableObject.isPocketed = false;
+                grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
+                grabbableObject.FallToGround(randomizePosition: true);
+                grabbableObject.fallTime = Random.Range(-0.3f, 0.05f);
+
+                if (player.IsOwner) {
+                    grabbableObject.DiscardItemOnClient();
+                } else if (!grabbableObject.itemProperties.syncDiscardFunction) {
+                    grabbableObject.playerHeldBy = null;
                 }
-                if (player.IsOwner && !disconnecting) {
+
+                if (player.IsOwner) {
                     HUDManager.Instance.holdingTwoHandedItem.enabled = false;
                     HUDManager.Instance.itemSlotIcons[i].enabled = false;
                     HUDManager.Instance.ClearControlTips();
                     player.activatingItem = false;
                 }
+
                 player.ItemSlots[i] = null;
             }
-            player.twoHanded = player.ItemSlots[player.currentItemSlot].itemProperties.twoHanded;
-            player.carryWeight = Mathf.Clamp(1f - (player.ItemSlots[player.currentItemSlot].itemProperties.weight - 1f), 0f, 10f);
+
+            var heldItem = player.ItemSlots[player.currentItemSlot];
+            player.twoHanded = heldItem?.itemProperties.twoHanded ?? false;
+            player.carryWeight = Mathf.Clamp(1f - (heldItem?.itemProperties.weight ?? 1f - 1f), 0f, 10f);
+            player.currentlyHeldObjectServer = heldItem;
         }
     }
 }
