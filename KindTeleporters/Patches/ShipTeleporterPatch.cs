@@ -89,9 +89,12 @@ namespace KindTeleporters.Patches
         }
 
         private static void DropAllButHeldItem(PlayerControllerB player) {
+            KindTeleportersBase.Log.LogInfo("Dropping all but held items!");
+
             for (int i = 0; i < player.ItemSlots.Length; i++) {
                 GrabbableObject grabbableObject = player.ItemSlots[i];
-                if (i == player.currentItemSlot || grabbableObject is null) {
+
+                if (grabbableObject is null || i == player.currentItemSlot) {
                     continue;
                 }
 
@@ -112,8 +115,7 @@ namespace KindTeleporters.Patches
                 grabbableObject.isPocketed = false;
                 grabbableObject.startFallingPosition = grabbableObject.transform.parent.InverseTransformPoint(grabbableObject.transform.position);
                 grabbableObject.FallToGround(randomizePosition: true);
-                grabbableObject.fallTime = Random.Range(-0.3f, 0.05f);
-
+                grabbableObject.fallTime = UnityEngine.Random.Range(-0.3f, 0.05f);
                 if (player.IsOwner) {
                     grabbableObject.DiscardItemOnClient();
                 } else if (!grabbableObject.itemProperties.syncDiscardFunction) {
@@ -131,8 +133,15 @@ namespace KindTeleporters.Patches
             }
 
             var heldItem = player.ItemSlots[player.currentItemSlot];
-            player.twoHanded = heldItem?.itemProperties.twoHanded ?? false;
-            player.carryWeight = Mathf.Clamp(1f - (heldItem?.itemProperties.weight ?? 1f - 1f), 0f, 10f);
+            if (heldItem is null) {
+                player.twoHanded = false;
+                player.carryWeight = 1f;
+                player.currentlyHeldObjectServer = null;
+                return;
+            }
+
+            player.twoHanded = heldItem.itemProperties.twoHanded;
+            player.carryWeight = Mathf.Clamp(1f - (heldItem.itemProperties.weight - 1f), 0f, 10f);
             player.currentlyHeldObjectServer = heldItem;
         }
     }
