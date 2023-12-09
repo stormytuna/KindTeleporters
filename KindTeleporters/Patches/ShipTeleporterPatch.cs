@@ -11,6 +11,11 @@ namespace KindTeleporters.Patches
     [HarmonyPatch(typeof(ShipTeleporter))]
     public class ShipTeleporterPatch
     {
+        private static readonly MethodInfo dropAllHeldItemsMethodInfo = typeof(PlayerControllerB).GetMethod("DropAllHeldItems", BindingFlags.Instance | BindingFlags.Public);
+        private static readonly MethodInfo dropAllButHeldItemMethodInfo = typeof(ShipTeleporterPatch).GetMethod("DropAllButHeldItem", BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo setPlayerTeleporterIdMethodInfo = typeof(ShipTeleporter).GetMethod("SetPlayerTeleporterId", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo getRandomRadarBoosterPositionMethodInfo = typeof(ShipTeleporterPatch).GetMethod("GetRandomRadarBoosterPosition", BindingFlags.Static | BindingFlags.NonPublic);
+
         private static readonly CodeMatch[] inverseTeleporterPatchIlMatch = new CodeMatch[] {
             new CodeMatch(i => i.IsLdloc()),
             new CodeMatch(i => i.LoadsConstant(1)),
@@ -24,9 +29,42 @@ namespace KindTeleporters.Patches
             new CodeMatch(i => i.LoadsConstant(0)),
             new CodeMatch(i => i.Calls(dropAllHeldItemsMethodInfo))
         };
+        private static readonly CodeMatch[] inverseTeleporterTeleportToRadarPatchIlMatch = new CodeMatch[] {
+            new CodeMatch(i => i.IsLdloc()),
+            new CodeMatch(i => i.IsLdloc()),
+            new CodeMatch(i => i.opcode == OpCodes.Ldc_I4_2),
+            new CodeMatch(i => i.Calls(setPlayerTeleporterIdMethodInfo))
+        };
 
-        private static readonly MethodInfo dropAllHeldItemsMethodInfo = typeof(PlayerControllerB).GetMethod("DropAllHeldItems", BindingFlags.Instance | BindingFlags.Public);
-        private static readonly MethodInfo dropAllButHeldItemMethodInfo = typeof(ShipTeleporterPatch).GetMethod("DropAllButHeldItem", BindingFlags.Static | BindingFlags.NonPublic);
+        [HarmonyTranspiler, HarmonyPatch("beamOutPlayer", MethodType.Enumerator)]
+        public static IEnumerable<CodeInstruction> InverseTeleporterTeleportToRadarBooster(IEnumerable<CodeInstruction> instructions) {
+            /*
+             *  // shipTeleporter.SetPlayerTeleporterId(playerControllerB, 2)
+			 *  ldloc.1
+			 *  ldloc.2
+			 *  ldc.i4.2
+			 *  call instance void ShipTeleporter::SetPlayerTeleporterId(class GameNetcodeStuff.PlayerControllerB, int32)
+			 *  
+			 *  becomes
+			 *  
+			 *  // position3 = ShipTeleporterPatch.GetRandomRadarBoosterPosition()
+			 *  ...
+			 *  callvirt valuetype [UnityEngine.CoreModule]UnityEngine.Vector3 ShipTeleporterPatch::GetRandomRadarBoosterPosition
+			 *  stloc.s 8
+             */
+
+            CodeMatcher codeMatcher = new CodeMatcher(instructions);
+
+            codeMatcher.End();
+            codeMatcher.MatchStartBackwards(inverseTeleporterTeleportToRadarPatchIlMatch);
+            codeMatcher.Advance(-1);
+            codeMatcher.Insert(new CodeInstruction(OpCodes.Callvirt, getRandomRadarBoosterPositionMethodInfo));
+            codeMatcher.Insert(new CodeInstruction(OpCodes.Stloc_S, 8));
+
+            KindTeleportersBase.Log.LogInfo("Patched 'ShipTeleporterPatch.beamOutPlayer' :D");
+
+            return codeMatcher.Instructions();
+        }
 
         [HarmonyTranspiler, HarmonyPatch("TeleportPlayerOutWithInverseTeleporter")]
         public static IEnumerable<CodeInstruction> InverseTeleporterDropAllButHeldItem(IEnumerable<CodeInstruction> instructions) {
@@ -143,6 +181,10 @@ namespace KindTeleporters.Patches
             player.twoHanded = heldItem.itemProperties.twoHanded;
             player.carryWeight = Mathf.Clamp(1f - (heldItem.itemProperties.weight - 1f), 0f, 10f);
             player.currentlyHeldObjectServer = heldItem;
+        }
+
+        private static Vector3 GetRandomRadarBoosterPosition() {
+            return Vector3.zero;
         }
     }
 }
