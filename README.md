@@ -8,3 +8,5 @@ Changelog
   - Released
 - v1.0.1
   - Fixed an issue where you could only teleport while holding an object
+- v1.0.2
+  - Possibly fixed an issue where teleporting while holding an item would get you stuck
