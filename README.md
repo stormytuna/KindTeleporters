@@ -10,3 +10,5 @@ Changelog
   - Fixed an issue where you could only teleport while holding an object
 - v1.0.2
   - Possibly fixed an issue where teleporting while holding an item would get you stuck
+- v1.0.3
+  - Fixed an issue where teleporting while holding an item would incorrectly give you negative weight

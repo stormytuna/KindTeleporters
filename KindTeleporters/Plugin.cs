@@ -9,7 +9,7 @@ namespace KindTeleporters
     {
         public const string ModGUID = "stormytuna.KindTeleporters";
         public const string ModName = "KindTeleporters";
-        public const string ModVersion = "1.0.2";
+        public const string ModVersion = "1.0.3";
 
         public static ManualLogSource Log = BepInEx.Logging.Logger.CreateLogSource(ModGUID);
         public static KindTeleportersBase Instance;

@@ -1,6 +1,6 @@
 {
   "name": "KindTeleporters",
-  "version_number": "1.0.2",
+  "version_number": "1.0.3",
   "website_url": "https://github.com/stormytuna/KindTeleporters",
   "description": "Makes teleporters a little nicer. When teleporting, you will not drop your held item! Only the rest of your inventory :)",
   "dependencies": []
