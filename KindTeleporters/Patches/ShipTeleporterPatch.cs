@@ -141,7 +141,7 @@ namespace KindTeleporters.Patches
             }
 
             player.twoHanded = heldItem.itemProperties.twoHanded;
-            player.carryWeight = Mathf.Clamp(1f - (heldItem.itemProperties.weight - 1f), 0f, 10f);
+            player.carryWeight = 1f + Mathf.Clamp(heldItem.itemProperties.weight - 1f, 0f, 10f);
             player.currentlyHeldObjectServer = heldItem;
         }
     }
